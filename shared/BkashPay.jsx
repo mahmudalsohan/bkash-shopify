@@ -46,15 +46,23 @@ export function BkashPay({orderId}) {
   }, [orderId]);
 
   if (state.status === 'payable') {
+    const amount = formatTaka(state.amount);
     return (
-      <s-banner heading="Complete your payment with bKash" tone="warning">
+      <s-banner heading="One more step: pay with bKash · bKash দিয়ে পেমেন্ট করুন" tone="warning">
         <s-stack gap="base">
+          <s-heading>Amount due: ৳{amount}</s-heading>
           <s-paragraph>
-            Your order {state.orderName} is reserved. Pay ৳{state.amount} with bKash to confirm it.
+            Your order {state.orderName} is reserved but not confirmed yet. Tap the button below to pay with bKash.
           </s-paragraph>
-          <s-button variant="primary" href={state.url}>
-            Pay ৳{state.amount} with bKash
+          <s-paragraph>
+            আপনার অর্ডার {state.orderName} নিশ্চিত করতে নিচের বাটনে ট্যাপ করে bKash দিয়ে পেমেন্ট করুন।
+          </s-paragraph>
+          <s-button variant="primary" inlineSize="fill" href={state.url}>
+            Pay ৳{amount} with bKash
           </s-button>
+          <s-text type="small" tone="neutral">
+            You'll be taken to bKash's secure payment page. Unpaid orders are cancelled automatically.
+          </s-text>
         </s-stack>
       </s-banner>
     );
@@ -62,12 +70,21 @@ export function BkashPay({orderId}) {
 
   if (state.status === 'paid') {
     return (
-      <s-banner heading="bKash payment received" tone="success">
-        <s-paragraph>Thank you! Your payment has been confirmed.</s-paragraph>
+      <s-banner heading="Payment received · পেমেন্ট সম্পন্ন হয়েছে" tone="success">
+        <s-paragraph>Thank you! Your bKash payment has been confirmed and your order is being processed.</s-paragraph>
       </s-banner>
     );
   }
 
   // loading, not_applicable (paid by another method), cancelled, error → show nothing
   return null;
+}
+
+/** "1250.00" → "1,250" · "1250.50" → "1,250.50" */
+function formatTaka(amount) {
+  const n = Number(amount);
+  return n.toLocaleString('en-IN', {
+    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
 }

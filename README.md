@@ -38,8 +38,9 @@ bkash-shopify/
 1. **Settings → Store details → Store currency** must be **BDT**.
 2. **Settings → Payments → Manual payment methods → Create custom payment method**:
    - Name: `bKash`. It must match `BKASH_GATEWAY_NAME` in `wrangler.toml` (case-insensitive).
-   - Additional details: *"After placing your order, click **Pay with bKash** on the confirmation page.
-     You can also pay later from the link in your order confirmation email."*
+   - Additional details (shown at checkout): *"Pay securely with your bKash account right after placing the order."*
+   - Payment instructions (Thank-you page + confirmation email): *"Tap **Pay with bKash** on this page to
+     complete your payment. You can also pay later from the 'View your order' link in your confirmation email."*
 
 ## 2. Deploy the Worker (Cloudflare, free plan)
 

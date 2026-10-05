@@ -10,6 +10,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Deployed to Cloudflare (`bkash-shopify.comfiqbd.workers.dev`) with D1 database and store `fab336-57.myshopify.com`.
 - Shopify app `bKash Payments` (client id `74fab2cd…`) with extensions released as app version v0.1.0.
 
+### Changed
+- More prominent pay banner: amount due as a heading, full-width "Pay ৳X with bKash" button, Bangla + English copy, amounts formatted like `৳1,250`.
+
 ### Fixed
 - Extensions failed to bundle in the Shopify CLI (`react/jsx-runtime` not found): added `tsconfig.json` with `jsxImportSource: preact`.
 
