@@ -1,0 +1,19 @@
+{
+  "name": "bkash-shopify-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "db:init": "wrangler d1 execute bkash-shopify --remote --file=schema.sql",
+    "db:init:local": "wrangler d1 execute bkash-shopify --local --file=schema.sql",
+    "logs": "wrangler tail"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261005.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.147.0"
+  },
+  "version": "0.1.0"
+}

@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: monthly }
+    groups:
+      shopify: { patterns: ["@shopify/*", "preact", "@preact/*"] }
+  - package-ecosystem: npm
+    directory: /worker
+    schedule: { interval: monthly }
+    groups:
+      cloudflare: { patterns: ["wrangler", "@cloudflare/*"] }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }

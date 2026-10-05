@@ -1,0 +1,13 @@
+api_version = "2026-07"
+
+[[extensions]]
+name = "bKash pay button – Order status page"
+handle = "bkash-order-status"
+type = "ui_extension"
+
+[[extensions.targeting]]
+module = "./src/OrderStatus.jsx"
+target = "customer-account.order-status.block.render"
+
+[extensions.capabilities]
+network_access = true

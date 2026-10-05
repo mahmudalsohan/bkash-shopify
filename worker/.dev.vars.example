@@ -1,0 +1,8 @@
+# Copy to .dev.vars for `wrangler dev` (never commit .dev.vars)
+SHOPIFY_CLIENT_SECRET=
+BKASH_APP_KEY=
+BKASH_APP_SECRET=
+BKASH_USERNAME=
+BKASH_PASSWORD=
+# any long random string, e.g. `openssl rand -hex 32`
+LINK_SECRET=
