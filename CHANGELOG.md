@@ -9,6 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Added
 - Deployed to Cloudflare (`bkash-shopify.comfiqbd.workers.dev`) with D1 database and store `fab336-57.myshopify.com`.
 - Shopify app `bKash Payments` (client id `74fab2cd…`) with extensions released as app version v0.1.0.
+- Worker test suite: 54 tests with faked Shopify and bKash, plus 6 live bKash sandbox tests (`npm run test:sandbox`). CI now runs the tests.
 
 ### Changed
 - The block shows a sample banner inside the checkout editor, so merchants can see and position it.

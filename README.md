@@ -97,6 +97,20 @@ Worker to get Admin API tokens with the client credentials grant, with no OAuth 
 
 ## 4. Test with the bKash sandbox
 
+### Automated tests
+
+```bash
+npm test               # 54 tests: real Worker code + real SQLite, Shopify & bKash faked (runs in CI)
+npm run test:sandbox   # 6 live tests against the real bKash sandbox (uses worker/.dev.vars)
+```
+
+They cover session-token checks, signed links, every callback outcome (success, cancel, failure,
+forged success, execute timeout, amount mismatch, order cancelled mid-payment, double payment,
+concurrent redirects, Shopify outage) and all three cron jobs.
+The sandbox tests share one bKash token: the sandbox rate-limits token grants (HTTP 429 for about 8 minutes).
+
+### Manual end-to-end test
+
 `BKASH_BASE_URL` points at the sandbox by default. Use your sandbox credentials and bKash's sandbox test wallet.
 
 1. Place an order and choose **bKash**. The Thank-you page should show **Pay ৳X with bKash**.

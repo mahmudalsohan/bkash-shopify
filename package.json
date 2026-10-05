@@ -10,7 +10,9 @@
     "deploy:worker": "npm --prefix worker run deploy",
     "typecheck": "npm --prefix worker run typecheck",
     "build:extensions": "node scripts/check-extensions.mjs",
-    "check": "npm run typecheck && npm run build:extensions"
+    "check": "npm run typecheck && npm test && npm run build:extensions",
+    "test": "npm --prefix worker test",
+    "test:sandbox": "npm --prefix worker run test:sandbox"
   },
   "devDependencies": {
     "@shopify/cli": "^4.8.4",
