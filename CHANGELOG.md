@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- Deployed to Cloudflare (`bkash-shopify.comfiqbd.workers.dev`) with D1 database and store `fab336-57.myshopify.com`.
+- Shopify app `bKash Payments` (client id `74fab2cd…`) with extensions released as app version v0.1.0.
+
+### Fixed
+- Extensions failed to bundle in the Shopify CLI (`react/jsx-runtime` not found): added `tsconfig.json` with `jsxImportSource: preact`.
+
 ## [0.1.0] - 2026-10-05
 
 ### Added
