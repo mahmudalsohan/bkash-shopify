@@ -73,13 +73,17 @@ export default {
 // ---------------------------------------------------------------------------
 async function apiPayLink(request: Request, env: Env): Promise<Response> {
   const session = await verifySessionToken(env, request.headers.get("Authorization"));
-  if (!session) return json({ status: "error", message: "Unauthorized" }, 401);
+  if (!session) {
+    console.warn("pay-link: invalid session token");
+    return json({ status: "error", message: "Unauthorized" }, 401);
+  }
 
   const body = (await request.json().catch(() => ({}))) as { orderId?: string };
   const orderId = body.orderId ? numericOrderId(body.orderId) : null;
   if (!orderId) return json({ status: "error", message: "orderId required" }, 400);
 
   const result = payability(env, await getOrder(env, orderId));
+  console.log("pay-link", orderId, result.status);
   if (result.status === "not_found") return json(result, 404); // extension retries: order may not be indexed yet
   if (result.status !== "payable") return json(result);
 

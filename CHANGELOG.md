@@ -11,6 +11,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Shopify app `bKash Payments` (client id `74fab2cd…`) with extensions released as app version v0.1.0.
 
 ### Changed
+- The block shows a sample banner inside the checkout editor, so merchants can see and position it.
+- Worker logs the outcome of each `/api/pay-link` request.
 - More prominent pay banner: amount due as a heading, full-width "Pay ৳X with bKash" button, Bangla + English copy, amounts formatted like `৳1,250`.
 
 ### Fixed
