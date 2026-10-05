@@ -12,11 +12,11 @@ enabled = true
 [[d1_databases]]
 binding = "DB"
 database_name = "bkash-shopify"
-database_id = "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+database_id = "005721b4-730d-40f9-9a00-291fab4bff12"
 
 # Non-secret config. Secrets are set with `wrangler secret put` (see README).
 [vars]
-PUBLIC_URL = "https://bkash-shopify.YOUR-SUBDOMAIN.workers.dev"
+PUBLIC_URL = "https://bkash-shopify.comfiqbd.workers.dev"
 SHOPIFY_SHOP = "your-store.myshopify.com"
 SHOPIFY_CLIENT_ID = "your-app-client-id"
 SHOPIFY_API_VERSION = "2026-07"
