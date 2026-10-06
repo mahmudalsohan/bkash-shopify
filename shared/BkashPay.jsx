@@ -18,6 +18,19 @@ export function BkashPay({orderId, hint = {}}) {
   const inEditor = Boolean(shopify.extension?.editor);
   const skip = inEditor || hint.likelyBkash === false;
   const [state, setState] = useState({status: 'loading'});
+  // Set once the customer taps Pay: bKash opens in a new tab (Shopify doesn't allow same-tab
+  // navigation to other sites), so this tab watches for the payment and updates itself.
+  const [waiting, setWaiting] = useState(false);
+
+  async function fetchStatus() {
+    const token = await shopify.sessionToken.get();
+    const res = await fetch(`${BACKEND_URL}/api/pay-link`, {
+      method: 'POST',
+      headers: {Authorization: `Bearer ${token}`, 'Content-Type': 'application/json'},
+      body: JSON.stringify({orderId}),
+    });
+    return res.json();
+  }
 
   useEffect(() => {
     if (!orderId || skip) return;
@@ -27,13 +40,7 @@ export function BkashPay({orderId, hint = {}}) {
 
     async function load() {
       try {
-        const token = await shopify.sessionToken.get();
-        const res = await fetch(`${BACKEND_URL}/api/pay-link`, {
-          method: 'POST',
-          headers: {Authorization: `Bearer ${token}`, 'Content-Type': 'application/json'},
-          body: JSON.stringify({orderId}),
-        });
-        const data = await res.json();
+        const data = await fetchStatus();
         if (cancelled) return;
         setState(data);
         // "pending": the order is so new that Shopify can't look it up yet. We already have a
@@ -52,6 +59,36 @@ export function BkashPay({orderId, hint = {}}) {
     };
   }, [orderId, skip]);
 
+  // After Pay is tapped: poll every 4s (for up to 15 min) until the order is paid.
+  useEffect(() => {
+    if (!waiting) return;
+    const started = Date.now();
+    let cancelled = false;
+    let timer;
+
+    async function poll() {
+      try {
+        const data = await fetchStatus();
+        if (cancelled) return;
+        if (data.status === 'paid' || data.status === 'cancelled' || data.status === 'not_applicable') {
+          setState(data);
+          return;
+        }
+        // keep the latest link (it may have been refreshed) without flickering the banner
+        if (data.url) setState((s) => ({...s, ...data}));
+      } catch (err) {
+        console.warn('bKash status poll failed', err);
+      }
+      if (!cancelled && Date.now() - started < 15 * 60 * 1000) timer = setTimeout(poll, 4000);
+    }
+
+    timer = setTimeout(poll, 4000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [waiting]);
+
   if (inEditor) {
     return <PayBanner orderName="#1001" amount="1250.00" preview />;
   }
@@ -63,6 +100,8 @@ export function BkashPay({orderId, hint = {}}) {
         orderName={state.orderName ?? hint.orderName}
         amount={state.amount ?? hint.amount}
         url={state.url}
+        waiting={waiting}
+        onPay={() => setWaiting(true)}
       />
     );
   }
@@ -85,8 +124,11 @@ export function BkashPay({orderId, hint = {}}) {
   return null;
 }
 
-/** The "pay now" banner. `loading`: link on its way · `preview`: checkout editor sample. */
-function PayBanner({orderName, amount, url, loading, preview}) {
+/**
+ * The "pay now" banner.
+ * `loading`: link on its way · `preview`: checkout editor sample · `waiting`: bKash tab is open
+ */
+function PayBanner({orderName, amount, url, loading, preview, waiting, onPay}) {
   const taka = amount ? formatTaka(amount) : null;
   const order = orderName ? `Your order ${orderName}` : 'Your order';
   const orderBn = orderName ? `আপনার অর্ডার ${orderName}` : 'আপনার অর্ডার';
@@ -102,15 +144,18 @@ function PayBanner({orderName, amount, url, loading, preview}) {
           variant="primary"
           inlineSize="fill"
           href={url}
+          onClick={onPay}
           loading={loading || undefined}
           disabled={!url || undefined}
         >
-          {taka ? `Pay ৳${taka} with bKash` : 'Pay with bKash'}
+          {waiting ? 'Open bKash payment again' : taka ? `Pay ৳${taka} with bKash` : 'Pay with bKash'}
         </s-button>
         <s-text type="small" tone="neutral">
           {preview
             ? 'Preview: customers only see this for unpaid bKash orders.'
-            : "You'll be taken to bKash's secure payment page. Unpaid orders are cancelled automatically."}
+            : waiting
+              ? 'Complete the payment in the bKash tab. This page updates automatically once it is done. · bKash ট্যাবে পেমেন্ট সম্পন্ন করুন, এই পেজটি নিজে থেকেই আপডেট হবে।'
+              : "bKash's secure payment page opens in a new tab. Unpaid orders are cancelled automatically."}
         </s-text>
       </s-stack>
     </s-banner>
