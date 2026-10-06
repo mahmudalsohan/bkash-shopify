@@ -219,7 +219,7 @@ function successPage(row: PaymentRow, trxId: string | null, back?: { href: strin
     message:
       row.status === "needs_refund"
         ? "We received your payment, but there's an issue with this order. Our team will contact you shortly."
-        : "Thank you! Your bKash payment was successful and your order is confirmed. You can close this tab.",
+        : "Thank you! Your bKash payment was successful and your order is confirmed. You can return to the store.",
     details: [
       ["Order", row.order_name],
       ["Amount", `৳${row.amount}`],
@@ -265,7 +265,7 @@ async function settle(env: Env, row: PaymentRow, result: BkashStatus): Promise<v
 }
 
 // ---------------------------------------------------------------------------
-// Hourly cron
+// Cron (every 10 minutes, see wrangler.toml)
 // ---------------------------------------------------------------------------
 async function runScheduled(env: Env) {
   await releaseStuck(env, 15 * 60);

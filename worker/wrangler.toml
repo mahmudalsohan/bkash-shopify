@@ -2,9 +2,9 @@ name = "bkash-shopify"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
 
-# Hourly: retry failed Shopify syncs, recover abandoned payments, auto-cancel stale orders
+# Every 10 min: retry failed Shopify syncs, recover payments whose callback was lost, auto-cancel stale orders
 [triggers]
-crons = ["0 * * * *"]
+crons = ["*/10 * * * *"]
 
 [observability]
 enabled = true
