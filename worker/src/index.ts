@@ -7,6 +7,7 @@ import {
   hasRecentAttempt,
   initiatedBetween,
   insertPayment,
+  kvSet,
   paymentsByStatus,
   releaseStuck,
   updatePayment,
@@ -84,7 +85,9 @@ async function apiPayLink(request: Request, env: Env): Promise<Response> {
 
   const result = payability(env, await getOrder(env, orderId));
   console.log("pay-link", orderId, result.status);
-  if (result.status === "not_found") return json(result, 404); // extension retries: order may not be indexed yet
+  // Brand-new orders take a few seconds to become visible in the Admin API. Don't make the
+  // customer wait: hand out the signed link now — /pay re-checks the order when it's tapped.
+  if (result.status === "not_found") return json({ status: "pending", url: await signedPayUrl(env, orderId) });
   if (result.status !== "payable") return json(result);
 
   return json({ ...result, url: await signedPayUrl(env, orderId) });
@@ -103,7 +106,7 @@ async function startPayment(env: Env, orderId: string, url: URL): Promise<Respon
     });
   }
 
-  const order = await getOrder(env, orderId);
+  const order = await getOrderWithRetry(env, orderId);
   const p = payability(env, order);
   const back = order ? { href: order.statusPageUrl, label: "View your order" } : undefined;
 
@@ -134,6 +137,16 @@ async function startPayment(env: Env, orderId: string, url: URL): Promise<Respon
   await insertPayment(env, { payment_id: paymentID, order_id: orderId, order_name: p.orderName, invoice, amount: p.amount });
 
   return Response.redirect(bkashURL, 302);
+}
+
+/** A just-placed order can take a few seconds to show up in the Admin API. */
+async function getOrderWithRetry(env: Env, orderId: string, attempts = 5) {
+  const delayMs = Number(env.ORDER_LOOKUP_RETRY_MS ?? 1000);
+  for (let i = 0; ; i++) {
+    const order = await getOrder(env, orderId);
+    if (order || i >= attempts - 1) return order;
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -207,7 +220,7 @@ function successPage(row: PaymentRow, trxId: string | null, back?: { href: strin
     message:
       row.status === "needs_refund"
         ? "We received your payment, but there's an issue with this order. Our team will contact you shortly."
-        : "Thank you! Your bKash payment was successful and your order is confirmed.",
+        : "Thank you! Your bKash payment was successful and your order is confirmed. You can return to the store.",
     details: [
       ["Order", row.order_name],
       ["Amount", `৳${row.amount}`],
@@ -253,9 +266,11 @@ async function settle(env: Env, row: PaymentRow, result: BkashStatus): Promise<v
 }
 
 // ---------------------------------------------------------------------------
-// Hourly cron
+// Cron (every 10 minutes, see wrangler.toml)
 // ---------------------------------------------------------------------------
 async function runScheduled(env: Env) {
+  // Heartbeat: `SELECT value FROM kv WHERE key = 'cron_last_run'` shows the cron is alive.
+  await kvSet(env, "cron_last_run", new Date().toISOString(), 30 * 24 * 3600);
   await releaseStuck(env, 15 * 60);
 
   // 1. Retry Shopify updates that failed after a successful bKash payment.

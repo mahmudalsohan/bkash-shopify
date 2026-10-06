@@ -129,8 +129,11 @@ describe("POST /api/pay-link — order states", () => {
     expect((await ask("1001")).body).toMatchObject({ status: "error" });
   });
 
-  it("404 (so the extension retries) when the order isn't visible yet", async () => {
-    expect((await ask("999")).status).toBe(404);
+  it("order not visible yet → 'pending' with a signed link right away (no waiting)", async () => {
+    const { status, body } = await ask("gid://shopify/OrderIdentity/999");
+    expect(status).toBe(200);
+    expect(body.status).toBe("pending");
+    expect(body.url).toMatch(new RegExp(`^${PUBLIC_URL}/pay/999\\?exp=\\d+&sig=`));
   });
 });
 
@@ -202,6 +205,27 @@ describe("GET /pay/:orderId — signed link → bKash", () => {
     const res = await h.request(path, { redirect: "manual" });
     vi.useRealTimers();
     expect(res.status).toBe(403);
+  });
+
+  it("tapping the link before Shopify has indexed the order waits for it, then pays", async () => {
+    // pay-link handed out a link while the order was still invisible...
+    const res1 = await h.request("/api/pay-link", payLinkRequest("1001"));
+    const { url } = (await res1.json()) as any;
+    // ...and the order shows up ~2s later
+    h.orders.set("1001", makeOrder("1001"));
+    h.hideOrder("1001", 2);
+    const res = await h.request(new URL(url).pathname + new URL(url).search, { redirect: "manual" });
+    expect(res.status).toBe(302);
+    expect(h.calls.filter((c) => c.op === "GetOrder").length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("gives up after ~5s if the order never appears", async () => {
+    const res1 = await h.request("/api/pay-link", payLinkRequest("4040"));
+    const { url } = (await res1.json()) as any;
+    const res = await h.request(new URL(url).pathname + new URL(url).search, { redirect: "manual" });
+    expect(await h1(res)).toBe("Payment not available");
+    expect(h.calls.filter((c) => c.op === "GetOrder" && c.body.variables.id.endsWith("/4040"))).toHaveLength(6); // pay-link + 5 tries
+    expect(h.calls.some((c) => c.op === "checkout/create")).toBe(false);
   });
 
   it("shows 'Already paid' instead of charging twice", async () => {
@@ -413,6 +437,12 @@ describe("hourly cron", () => {
     h.bkash.outcome.set(paymentId, "not_completed");
     await h.runCron();
     expect(h.orders.get("2001")!.cancelledAt).toBeNull();
+  });
+
+  it("records a heartbeat on every run", async () => {
+    await h.runCron();
+    const row = h.db.prepare("SELECT value FROM kv WHERE key = 'cron_last_run'").get() as { value: string };
+    expect(Date.now() - Date.parse(row.value)).toBeLessThan(5000);
   });
 
   it("AUTO_CANCEL_HOURS=0 disables auto-cancel", async () => {

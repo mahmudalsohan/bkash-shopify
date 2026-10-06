@@ -9,7 +9,7 @@ Checkout (manual method "bKash") → order created, payment pending
   → Thank-you / Order-status extension ──POST /api/pay-link──▶ Worker (checks the real order in Shopify)
   → customer clicks "Pay ৳X with bKash" ──GET /pay/:id──▶ Worker → bKash create → redirect to bKash
   → customer approves in bKash ──GET /bkash/callback──▶ Worker → execute/query → orderMarkAsPaid + tags
-Hourly cron: retry failed Shopify syncs · recover payments whose callback never arrived · cancel stale unpaid orders
+Cron every 10 min: retry failed Shopify syncs · recover payments whose callback never arrived · cancel stale unpaid orders
 ```
 
 ```
@@ -141,6 +141,16 @@ npx wrangler d1 execute bkash-shopify --remote --command "SELECT * FROM payments
 3. Ask bKash whether live access needs **server IP whitelisting**. Cloudflare Workers don't have a fixed
    outbound IP. If bKash requires one, route the bKash calls through a static-IP proxy.
 
+## Facebook / Instagram in-app browsers
+
+Shopify extensions can't open external links in the same tab, so the bKash page opens in a new tab.
+Inside the Facebook or Instagram app it usually stays in the in-app browser (sometimes replacing the
+Thank-you page); on some versions it opens Chrome or Safari. Payment confirmation never depends on
+the tab: bKash calls the Worker's callback, and the Worker verifies the payment with bKash
+server-to-server and marks the order paid. The original tab polls the Worker, so it updates even when
+the payment happened in another browser. If the customer closes everything before bKash redirects
+back, the cron recovers the payment within 10–20 minutes.
+
 ## Operations
 
 | `payments.status` | Meaning | Action |
@@ -149,8 +159,14 @@ npx wrangler d1 execute bkash-shopify --remote --command "SELECT * FROM payments
 | `processing` | A request is confirming it right now | none (reset automatically if stuck > 15 min) |
 | `completed` | Paid at bKash and marked paid in Shopify | none |
 | `cancelled` / `failed` | No money taken | none |
-| `unsynced` | Paid at bKash, Shopify update failed | none (the cron retries every hour) |
+| `unsynced` | Paid at bKash, Shopify update failed | none (the cron retries every 10 minutes) |
 | `needs_refund` | Paid at bKash, but the order was already cancelled or paid, or the amount didn't match | **Refund manually** from the bKash merchant panel. The order is tagged `bkash-needs-refund` / `bkash-needs-review`. |
+
+Check the cron is running (it should be under 10 minutes old):
+
+```bash
+npx wrangler d1 execute bkash-shopify --remote --command "SELECT value FROM kv WHERE key='cron_last_run'"
+```
 
 Find orders that need attention: in Shopify Admin, filter orders by tag `bkash-needs-refund`, or run:
 
