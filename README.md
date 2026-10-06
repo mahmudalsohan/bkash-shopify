@@ -97,6 +97,17 @@ Worker to get Admin API tokens with the client credentials grant, with no OAuth 
 
 ## 4. Test with the bKash sandbox
 
+`BKASH_BASE_URL` points at the sandbox by default. Put the sandbox API credentials in `worker/.dev.vars`
+for local runs, and in `wrangler secret put` for the deployed Worker.
+
+**Sandbox test wallets** (on the bKash payment page):
+
+| Wallet number | Result |
+|---|---|
+| `01770618575` | Successful payment |
+| `01823074817` / `01823074818` | Failure cases (insufficient balance, debit block) |
+
+Use OTP `123456` and PIN `12121` for every test wallet.
 ### Automated tests
 
 ```bash
