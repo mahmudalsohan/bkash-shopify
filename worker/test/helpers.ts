@@ -78,6 +78,7 @@ export function setup(opts: { live?: boolean; envOverrides?: Partial<Env> } = {}
   const orders = new Map<string, FakeOrder>();
   const calls: { service: "shopify" | "bkash"; op: string; body: any; headers: Record<string, string> }[] = [];
   const shopifyFail = { markPaid: false };
+  const hidden = new Map<string, number>(); // order id → number of lookups that return null
   const bkash = {
     outcome: new Map<string, BkashOutcome>(), // per paymentID; default "completed"
     payments: new Map<string, { amount: string; invoice: string; executed: boolean }>(),
@@ -99,6 +100,7 @@ export function setup(opts: { live?: boolean; envOverrides?: Partial<Env> } = {}
     BKASH_PASSWORD: "pass",
     LINK_SECRET: "link-secret",
     AUTO_CANCEL_HOURS: "24",
+    ORDER_LOOKUP_RETRY_MS: "10",
     ...opts.envOverrides,
   };
 
@@ -120,6 +122,11 @@ export function setup(opts: { live?: boolean; envOverrides?: Partial<Env> } = {}
 
   async function shopifyGraphql(query: string, v: any) {
     if (query.includes("query GetOrder")) {
+      const left = hidden.get(idOf(v.id)) ?? 0;
+      if (left > 0) {
+        hidden.set(idOf(v.id), left - 1);
+        return json({ data: { order: null } });
+      }
       const o = orders.get(idOf(v.id));
       return json({ data: { order: o ? toGraphql(o) : null } });
     }
@@ -213,7 +220,10 @@ export function setup(opts: { live?: boolean; envOverrides?: Partial<Env> } = {}
   const ageRow = (id: string, seconds: number) =>
     db.prepare("UPDATE payments SET created_at = created_at - ?, updated_at = updated_at - ? WHERE payment_id = ?").run(seconds, seconds, id);
 
-  return { env, db, orders, calls, bkash, shopifyFail, request, runCron, payment, ageRow };
+  /** Make the next `times` lookups of an order return null (not indexed yet). */
+  const hideOrder = (id: string, times: number) => hidden.set(id, times);
+
+  return { env, db, orders, calls, bkash, shopifyFail, request, runCron, payment, ageRow, hideOrder };
 }
 
 // ---------------------------------------------------------------------------

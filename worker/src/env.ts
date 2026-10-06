@@ -23,4 +23,7 @@ export interface Env {
 
   // Cancel unpaid bKash orders older than this many hours ("0" disables)
   AUTO_CANCEL_HOURS: string;
+
+  // Delay between order lookups while a brand-new order isn't visible yet (default 1000)
+  ORDER_LOOKUP_RETRY_MS?: string;
 }

@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Worker test suite: 54 tests with faked Shopify and bKash, plus 6 live bKash sandbox tests (`npm run test:sandbox`). CI now runs the tests.
 
 ### Changed
+- Thank-you page banner appears instantly: the extension knows from the selected payment method type (`manualPayment`) that it's likely a bKash order and renders immediately with the order total and a loading button. Orders paid with COD/cards skip the backend call entirely.
+- `/api/pay-link` no longer returns 404 for brand-new orders; it returns `pending` with a signed link straight away, and `/pay` waits up to ~5s for the order to become visible.
 - The block shows a sample banner inside the checkout editor, so merchants can see and position it.
 - Worker logs the outcome of each `/api/pay-link` request.
 - More prominent pay banner: amount due as a heading, full-width "Pay ৳X with bKash" button, Bangla + English copy, amounts formatted like `৳1,250`.

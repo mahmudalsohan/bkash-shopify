@@ -84,7 +84,9 @@ async function apiPayLink(request: Request, env: Env): Promise<Response> {
 
   const result = payability(env, await getOrder(env, orderId));
   console.log("pay-link", orderId, result.status);
-  if (result.status === "not_found") return json(result, 404); // extension retries: order may not be indexed yet
+  // Brand-new orders take a few seconds to become visible in the Admin API. Don't make the
+  // customer wait: hand out the signed link now — /pay re-checks the order when it's tapped.
+  if (result.status === "not_found") return json({ status: "pending", url: await signedPayUrl(env, orderId) });
   if (result.status !== "payable") return json(result);
 
   return json({ ...result, url: await signedPayUrl(env, orderId) });
@@ -103,7 +105,7 @@ async function startPayment(env: Env, orderId: string, url: URL): Promise<Respon
     });
   }
 
-  const order = await getOrder(env, orderId);
+  const order = await getOrderWithRetry(env, orderId);
   const p = payability(env, order);
   const back = order ? { href: order.statusPageUrl, label: "View your order" } : undefined;
 
@@ -134,6 +136,16 @@ async function startPayment(env: Env, orderId: string, url: URL): Promise<Respon
   await insertPayment(env, { payment_id: paymentID, order_id: orderId, order_name: p.orderName, invoice, amount: p.amount });
 
   return Response.redirect(bkashURL, 302);
+}
+
+/** A just-placed order can take a few seconds to show up in the Admin API. */
+async function getOrderWithRetry(env: Env, orderId: string, attempts = 5) {
+  const delayMs = Number(env.ORDER_LOOKUP_RETRY_MS ?? 1000);
+  for (let i = 0; ; i++) {
+    const order = await getOrder(env, orderId);
+    if (order || i >= attempts - 1) return order;
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
 }
 
 // ---------------------------------------------------------------------------
