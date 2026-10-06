@@ -162,6 +162,12 @@ back, the cron recovers the payment within 10–20 minutes.
 | `unsynced` | Paid at bKash, Shopify update failed | none (the cron retries every 10 minutes) |
 | `needs_refund` | Paid at bKash, but the order was already cancelled or paid, or the amount didn't match | **Refund manually** from the bKash merchant panel. The order is tagged `bkash-needs-refund` / `bkash-needs-review`. |
 
+Check the cron is running (it should be under 10 minutes old):
+
+```bash
+npx wrangler d1 execute bkash-shopify --remote --command "SELECT value FROM kv WHERE key='cron_last_run'"
+```
+
 Find orders that need attention: in Shopify Admin, filter orders by tag `bkash-needs-refund`, or run:
 
 ```bash

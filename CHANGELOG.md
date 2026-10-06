@@ -12,6 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Worker test suite: 54 tests with faked Shopify and bKash, plus 6 live bKash sandbox tests (`npm run test:sandbox`). CI now runs the tests.
 
 ### Changed
+- Cron heartbeat: each run stores `cron_last_run` in D1 so you can check the cron is alive.
 - Cron now runs every 10 minutes (was hourly): payments whose callback was lost are recovered within 10–20 min.
 - Success page says "You can return to the store" (correct even when bKash opened in the same in-app view, e.g. Facebook's browser).
 - After tapping Pay, the Thank-you / Order-status tab polls every 4s (up to 15 min) and switches to "Payment received" by itself. bKash opens in a new tab because Shopify only allows `auto`/`_blank` link targets in checkout extensions. The success page now says the tab can be closed.

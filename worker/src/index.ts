@@ -7,6 +7,7 @@ import {
   hasRecentAttempt,
   initiatedBetween,
   insertPayment,
+  kvSet,
   paymentsByStatus,
   releaseStuck,
   updatePayment,
@@ -268,6 +269,8 @@ async function settle(env: Env, row: PaymentRow, result: BkashStatus): Promise<v
 // Cron (every 10 minutes, see wrangler.toml)
 // ---------------------------------------------------------------------------
 async function runScheduled(env: Env) {
+  // Heartbeat: `SELECT value FROM kv WHERE key = 'cron_last_run'` shows the cron is alive.
+  await kvSet(env, "cron_last_run", new Date().toISOString(), 30 * 24 * 3600);
   await releaseStuck(env, 15 * 60);
 
   // 1. Retry Shopify updates that failed after a successful bKash payment.

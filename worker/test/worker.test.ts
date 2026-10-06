@@ -439,6 +439,12 @@ describe("hourly cron", () => {
     expect(h.orders.get("2001")!.cancelledAt).toBeNull();
   });
 
+  it("records a heartbeat on every run", async () => {
+    await h.runCron();
+    const row = h.db.prepare("SELECT value FROM kv WHERE key = 'cron_last_run'").get() as { value: string };
+    expect(Date.now() - Date.parse(row.value)).toBeLessThan(5000);
+  });
+
   it("AUTO_CANCEL_HOURS=0 disables auto-cancel", async () => {
     h = setup({ envOverrides: { AUTO_CANCEL_HOURS: "0" } });
     h.orders.set("2001", makeOrder("2001", { createdAt: new Date(Date.now() - 99 * 3600 * 1000).toISOString() }));
