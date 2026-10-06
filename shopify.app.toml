@@ -1,8 +1,8 @@
 # Shopify app config — deployed with `shopify app deploy`.
 # client_id is filled in by `shopify app config link` (or copy it from the Dev Dashboard).
-client_id = "YOUR_CLIENT_ID"
+client_id = "74fab2cd8ddbee9dbb3bbe69117057dc"
 name = "bKash Payments"
-application_url = "https://bkash-shopify.YOUR-SUBDOMAIN.workers.dev"
+application_url = "https://bkash-shopify.comfiqbd.workers.dev"
 embedded = false
 
 [access_scopes]
@@ -10,11 +10,10 @@ embedded = false
 scopes = "read_orders,write_orders"
 
 [auth]
-redirect_urls = ["https://bkash-shopify.YOUR-SUBDOMAIN.workers.dev/"]
+redirect_urls = ["https://bkash-shopify.comfiqbd.workers.dev/"]
 
 [webhooks]
 api_version = "2026-07"
 
 [build]
 automatically_update_urls_on_dev = false
-include_config_on_deploy = true

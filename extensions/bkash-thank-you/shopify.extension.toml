@@ -3,6 +3,7 @@ api_version = "2026-07"
 [[extensions]]
 name = "bKash pay button – Thank you page"
 handle = "bkash-thank-you"
+uid = "8dd1b309-87ac-5409-4804-d257014161f16dbdb447"
 type = "ui_extension"
 
 [[extensions.targeting]]

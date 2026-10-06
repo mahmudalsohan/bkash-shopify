@@ -3,6 +3,7 @@ api_version = "2026-07"
 [[extensions]]
 name = "bKash pay button – Order status page"
 handle = "bkash-order-status"
+uid = "a060236a-e347-7c34-70dd-c42e572dfd1ebfff0c8a"
 type = "ui_extension"
 
 [[extensions.targeting]]

@@ -38,8 +38,9 @@ bkash-shopify/
 1. **Settings → Store details → Store currency** must be **BDT**.
 2. **Settings → Payments → Manual payment methods → Create custom payment method**:
    - Name: `bKash`. It must match `BKASH_GATEWAY_NAME` in `wrangler.toml` (case-insensitive).
-   - Additional details: *"After placing your order, click **Pay with bKash** on the confirmation page.
-     You can also pay later from the link in your order confirmation email."*
+   - Additional details (shown at checkout): *"Pay securely with your bKash account right after placing the order."*
+   - Payment instructions (Thank-you page + confirmation email): *"Tap **Pay with bKash** on this page to
+     complete your payment. You can also pay later from the 'View your order' link in your confirmation email."*
 
 ## 2. Deploy the Worker (Cloudflare, free plan)
 
@@ -107,6 +108,21 @@ for local runs, and in `wrangler secret put` for the deployed Worker.
 | `01823074817` / `01823074818` | Failure cases (insufficient balance, debit block) |
 
 Use OTP `123456` and PIN `12121` for every test wallet.
+### Automated tests
+
+```bash
+npm test               # 54 tests: real Worker code + real SQLite, Shopify & bKash faked (runs in CI)
+npm run test:sandbox   # 6 live tests against the real bKash sandbox (uses worker/.dev.vars)
+```
+
+They cover session-token checks, signed links, every callback outcome (success, cancel, failure,
+forged success, execute timeout, amount mismatch, order cancelled mid-payment, double payment,
+concurrent redirects, Shopify outage) and all three cron jobs.
+The sandbox tests share one bKash token: the sandbox rate-limits token grants (HTTP 429 for about 8 minutes).
+
+### Manual end-to-end test
+
+`BKASH_BASE_URL` points at the sandbox by default. Use your sandbox credentials and bKash's sandbox test wallet.
 
 1. Place an order and choose **bKash**. The Thank-you page should show **Pay ৳X with bKash**.
 2. Pay. You land on the "Payment received" page, and the order becomes **Paid** with tags `bkash-paid` and `bkash-trx-<TrxID>`.
