@@ -21,5 +21,7 @@ jobs:
       - run: npm ci --prefix worker
       - name: Typecheck worker
         run: npm run typecheck
+      - name: Test worker
+        run: npm test
       - name: Bundle extensions
         run: npm run build:extensions

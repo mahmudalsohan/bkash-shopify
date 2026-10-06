@@ -18,7 +18,7 @@ database_id = "005721b4-730d-40f9-9a00-291fab4bff12"
 [vars]
 PUBLIC_URL = "https://bkash-shopify.comfiqbd.workers.dev"
 SHOPIFY_SHOP = "fab336-57.myshopify.com"
-SHOPIFY_CLIENT_ID = "your-app-client-id"
+SHOPIFY_CLIENT_ID = "74fab2cd8ddbee9dbb3bbe69117057dc"
 SHOPIFY_API_VERSION = "2026-07"
 BKASH_GATEWAY_NAME = "bKash"
 AUTO_CANCEL_HOURS = "24"
