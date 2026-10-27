@@ -78,27 +78,6 @@ export async function releaseStuck(env: Env, olderThanSeconds: number) {
     .run();
 }
 
-/** Payments still "initiated" that were created between `minAge` and `maxAge` seconds ago. */
-export async function initiatedBetween(env: Env, minAge: number, maxAge: number): Promise<PaymentRow[]> {
-  const t = now();
-  const res = await env.DB.prepare(
-    `SELECT * FROM payments WHERE status = 'initiated' AND created_at < ? AND created_at > ?`,
-  )
-    .bind(t - minAge, t - maxAge)
-    .all<PaymentRow>();
-  return res.results;
-}
-
-/** True if a bKash payment for this order was started recently (customer may be mid-payment). */
-export async function hasRecentAttempt(env: Env, orderId: string, withinSeconds: number): Promise<boolean> {
-  const row = await env.DB.prepare(
-    `SELECT 1 FROM payments WHERE order_id = ? AND created_at > ? LIMIT 1`,
-  )
-    .bind(orderId, now() - withinSeconds)
-    .first();
-  return row !== null;
-}
-
 // Tiny key/value cache with expiry (used for API tokens).
 export async function kvGet(env: Env, key: string): Promise<string | null> {
   const row = await env.DB.prepare(`SELECT value FROM kv WHERE key = ? AND expires_at > ?`)

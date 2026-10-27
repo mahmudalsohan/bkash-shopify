@@ -4,8 +4,6 @@ import { signedPayUrl, verifyPayUrl, verifySessionToken } from "./auth";
 import {
   claimPayment,
   getPayment,
-  hasRecentAttempt,
-  initiatedBetween,
   insertPayment,
   kvSet,
   paymentsByStatus,
@@ -15,13 +13,10 @@ import {
 } from "./db";
 import {
   addTags,
-  cancelOrder,
   getOrder,
-  isBkashOrder,
   markOrderPaid,
   numericOrderId,
   payability,
-  pendingOrdersBefore,
 } from "./shopify";
 import { page } from "./pages";
 
@@ -267,50 +262,18 @@ async function settle(env: Env, row: PaymentRow, result: BkashStatus): Promise<v
 
 // ---------------------------------------------------------------------------
 // Cron (every 10 minutes, see wrangler.toml)
+//
+// Only finishes payments where money has already moved. It never executes a payment the customer
+// abandoned (no execute = no charge) and never cancels orders: unpaid bKash orders stay open, and the
+// customer can still pay from the Order status page.
 // ---------------------------------------------------------------------------
 async function runScheduled(env: Env) {
   // Heartbeat: `SELECT value FROM kv WHERE key = 'cron_last_run'` shows the cron is alive.
   await kvSet(env, "cron_last_run", new Date().toISOString(), 30 * 24 * 3600);
   await releaseStuck(env, 15 * 60);
 
-  // 1. Retry Shopify updates that failed after a successful bKash payment.
+  // Retry Shopify updates that failed after a successful bKash payment.
   for (const row of await paymentsByStatus(env, "unsynced")) {
     await settle(env, row, { paymentID: row.payment_id, transactionStatus: "Completed", trxID: row.trx_id!, amount: row.amount });
-  }
-
-  // 2. Recover payments where the customer paid but never came back to our callback
-  //    (closed the browser, lost connection). Execute succeeds only if they authorised it.
-  for (const row of await initiatedBetween(env, 10 * 60, 48 * 3600)) {
-    if (!(await claimPayment(env, row.payment_id))) continue;
-    try {
-      const result = await executeOrQuery(env, row.payment_id);
-      if (result.transactionStatus === "Completed" && result.trxID) {
-        await settle(env, row, result);
-      } else if (row.created_at < Date.now() / 1000 - 2 * 3600) {
-        await updatePayment(env, row.payment_id, { status: "failed", error: `expired (${result.transactionStatus})` });
-      } else {
-        await updatePayment(env, row.payment_id, { status: "initiated" });
-      }
-    } catch (err) {
-      console.warn("Reconcile failed", row.payment_id, err);
-      await updatePayment(env, row.payment_id, { status: "initiated", error: String(err) });
-    }
-  }
-
-  // 3. Cancel bKash orders that stayed unpaid too long (releases reserved stock).
-  const hours = Number(env.AUTO_CANCEL_HOURS || "0");
-  if (hours > 0) {
-    const stale = await pendingOrdersBefore(env, new Date(Date.now() - hours * 3600 * 1000));
-    for (const order of stale) {
-      if (!isBkashOrder(env, order)) continue;
-      const id = numericOrderId(order.id)!;
-      if (await hasRecentAttempt(env, id, 60 * 60)) continue; // customer is paying right now
-      try {
-        await cancelOrder(env, id, `Auto-cancelled: bKash payment not received within ${hours}h`);
-        console.log("Cancelled unpaid order", order.name);
-      } catch (err) {
-        console.warn("Cancel failed", order.name, err);
-      }
-    }
   }
 }

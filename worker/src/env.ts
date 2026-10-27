@@ -21,9 +21,6 @@ export interface Env {
   // Signs the /pay links so they can't be forged
   LINK_SECRET: string; // secret
 
-  // Cancel unpaid bKash orders older than this many hours ("0" disables)
-  AUTO_CANCEL_HOURS: string;
-
   // Delay between order lookups while a brand-new order isn't visible yet (default 1000)
   ORDER_LOOKUP_RETRY_MS?: string;
 }

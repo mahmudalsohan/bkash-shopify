@@ -18,7 +18,7 @@
     "@shopify/cli": "^4.8.4",
     "esbuild": "^0.28.2"
   },
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "bKash Tokenized Checkout for Shopify — manual payment method + Thank-you/Order-status pay button + Cloudflare Worker backend",
   "engines": {
     "node": ">=20"
