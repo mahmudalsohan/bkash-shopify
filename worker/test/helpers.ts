@@ -99,7 +99,6 @@ export function setup(opts: { live?: boolean; envOverrides?: Partial<Env> } = {}
     BKASH_USERNAME: "user",
     BKASH_PASSWORD: "pass",
     LINK_SECRET: "link-secret",
-    AUTO_CANCEL_HOURS: "24",
     ORDER_LOOKUP_RETRY_MS: "10",
     ...opts.envOverrides,
   };

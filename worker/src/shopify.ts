@@ -102,38 +102,6 @@ export async function addTags(env: Env, orderId: string, tags: string[]): Promis
   if (errs.length) console.warn("tagsAdd failed", orderId, errs);
 }
 
-/** Open, unpaid orders created before `before`. Caller filters by payment gateway. */
-export async function pendingOrdersBefore(env: Env, before: Date): Promise<ShopifyOrder[]> {
-  const data = await graphql<{ orders: { nodes: ShopifyOrder[] } }>(
-    env,
-    `query StaleOrders($query: String!) { orders(first: 50, query: $query) { nodes { ${ORDER_FIELDS} } } }`,
-    { query: `financial_status:pending status:open created_at:<'${before.toISOString()}'` },
-  );
-  return data.orders.nodes;
-}
-
-export async function cancelOrder(env: Env, orderId: string, staffNote: string): Promise<void> {
-  const data = await graphql<any>(
-    env,
-    `mutation CancelOrder($orderId: ID!, $staffNote: String) {
-      orderCancel(
-        orderId: $orderId
-        reason: OTHER
-        restock: true
-        notifyCustomer: true
-        staffNote: $staffNote
-        refundMethod: { originalPaymentMethodsRefund: false }
-      ) {
-        job { id }
-        orderCancelUserErrors { field message code }
-      }
-    }`,
-    { orderId: `gid://shopify/Order/${orderId}`, staffNote },
-  );
-  const errs = data.orderCancel.orderCancelUserErrors;
-  if (errs.length) throw new Error(`orderCancel: ${JSON.stringify(errs)}`);
-}
-
 // ---------- order → bKash payability ----------
 
 export type Payability =

@@ -6,14 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-27
+
+### Removed
+- **Auto-cancel of unpaid bKash orders** (`AUTO_CANCEL_HOURS`). Unpaid bKash orders now stay open; the customer can still pay from the Order status page, and staff decide what to do with them.
+- **Lost-callback recovery in the cron.** The cron no longer executes payments on its own. bKash only takes money when our server calls *execute*, so a customer who leaves bKash before it redirects back is simply not charged.
+
 ### Added
 - Deployed to Cloudflare (`bkash-shopify.comfiqbd.workers.dev`) with D1 database and store `fab336-57.myshopify.com`.
 - Shopify app `bKash Payments` (client id `74fab2cd…`) with extensions released as app version v0.1.0.
-- Worker test suite: 54 tests with faked Shopify and bKash, plus 6 live bKash sandbox tests (`npm run test:sandbox`). CI now runs the tests.
+- Worker test suite: 53 tests with faked Shopify and bKash, plus 6 live bKash sandbox tests (`npm run test:sandbox`). CI now runs the tests.
 
 ### Changed
+- The cron now only retries Shopify updates for payments where money has already moved (`unsynced`), releases payments stuck in `processing`, and writes its heartbeat.
 - Cron heartbeat: each run stores `cron_last_run` in D1 so you can check the cron is alive.
-- Cron now runs every 10 minutes (was hourly): payments whose callback was lost are recovered within 10–20 min.
+- Cron now runs every 10 minutes (was hourly).
 - Success page says "You can return to the store" (correct even when bKash opened in the same in-app view, e.g. Facebook's browser).
 - After tapping Pay, the Thank-you / Order-status tab polls every 4s (up to 15 min) and switches to "Payment received" by itself. bKash opens in a new tab because Shopify only allows `auto`/`_blank` link targets in checkout extensions. The success page now says the tab can be closed.
 - Thank-you page banner appears instantly: the extension knows from the selected payment method type (`manualPayment`) that it's likely a bKash order and renders immediately with the order total and a loading button. Orders paid with COD/cards skip the backend call entirely.

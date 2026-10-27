@@ -369,7 +369,7 @@ describe("GET /bkash/callback", () => {
 });
 
 // ===========================================================================
-describe("hourly cron", () => {
+describe("cron", () => {
   beforeEach(() => h.orders.set("1001", makeOrder("1001")));
 
   it("retries unsynced payments until Shopify is marked paid", async () => {
@@ -384,72 +384,35 @@ describe("hourly cron", () => {
     expect(h.orders.get("1001")!.displayFinancialStatus).toBe("PAID");
   });
 
-  it("recovers a payment whose callback never arrived (customer closed the tab)", async () => {
+  it("never executes a payment the customer abandoned (no execute = no charge)", async () => {
     const { paymentId } = await startPayment(h, "1001");
-    h.ageRow(paymentId, 15 * 60);
-    await h.runCron();
-    expect(h.payment(paymentId).status).toBe("completed");
-    expect(h.orders.get("1001")!.displayFinancialStatus).toBe("PAID");
-  });
-
-  it("leaves fresh (< 10 min) payments alone — customer may still be paying", async () => {
-    const { paymentId } = await startPayment(h, "1001");
+    h.ageRow(paymentId, 3 * 3600);
     await h.runCron();
     expect(h.payment(paymentId).status).toBe("initiated");
-    expect(h.calls.some((c) => c.op === "checkout/execute")).toBe(false);
+    expect(h.calls.some((c) => c.op === "checkout/execute" || c.op === "payment/status")).toBe(false);
+    expect(h.orders.get("1001")!.displayFinancialStatus).toBe("PENDING");
   });
 
-  it("keeps retrying unauthorised payments for 2h, then marks them failed", async () => {
-    const { paymentId } = await startPayment(h, "1001");
-    h.bkash.outcome.set(paymentId, "not_completed");
-    h.ageRow(paymentId, 30 * 60);
+  it("never cancels orders, however old and unpaid", async () => {
+    h.orders.set("2001", makeOrder("2001", { createdAt: new Date(Date.now() - 99 * 3600 * 1000).toISOString() }));
     await h.runCron();
-    expect(h.payment(paymentId).status).toBe("initiated");
-
-    h.ageRow(paymentId, 2 * 3600);
-    await h.runCron();
-    expect(h.payment(paymentId).status).toBe("failed");
+    expect(h.orders.get("2001")!.cancelledAt).toBeNull();
+    expect(h.calls.some((c) => c.op === "CancelOrder" || c.op === "StaleOrders")).toBe(false);
   });
 
-  it("releases payments stuck in 'processing' (worker crashed) and recovers them", async () => {
+  it("releases payments stuck in 'processing' (worker crashed) so the customer's refresh can finish them", async () => {
     const { paymentId } = await startPayment(h, "1001");
     h.db.prepare("UPDATE payments SET status='processing' WHERE payment_id=?").run(paymentId);
     h.ageRow(paymentId, 20 * 60);
     await h.runCron();
+    expect(h.payment(paymentId).status).toBe("initiated");
+    await callback(h, paymentId, "success");
     expect(h.payment(paymentId).status).toBe("completed");
-  });
-
-  it("auto-cancels stale unpaid bKash orders only", async () => {
-    const old = new Date(Date.now() - 25 * 3600 * 1000).toISOString();
-    h.orders.set("2001", makeOrder("2001", { createdAt: old })); // stale bKash → cancel
-    h.orders.set("2002", makeOrder("2002", { createdAt: old, paymentGatewayNames: ["Cash on Delivery (COD)"] })); // keep
-    h.orders.set("2003", makeOrder("2003")); // fresh bKash → keep
-    await h.runCron();
-    expect(h.orders.get("2001")!.cancelledAt).not.toBeNull();
-    expect(h.orders.get("2002")!.cancelledAt).toBeNull();
-    expect(h.orders.get("2003")!.cancelledAt).toBeNull();
-  });
-
-  it("doesn't cancel a stale order whose customer started paying in the last hour", async () => {
-    const old = new Date(Date.now() - 25 * 3600 * 1000).toISOString();
-    h.orders.set("2001", makeOrder("2001", { createdAt: old }));
-    const { paymentId } = await startPayment(h, "2001");
-    h.bkash.outcome.set(paymentId, "not_completed");
-    await h.runCron();
-    expect(h.orders.get("2001")!.cancelledAt).toBeNull();
   });
 
   it("records a heartbeat on every run", async () => {
     await h.runCron();
     const row = h.db.prepare("SELECT value FROM kv WHERE key = 'cron_last_run'").get() as { value: string };
     expect(Date.now() - Date.parse(row.value)).toBeLessThan(5000);
-  });
-
-  it("AUTO_CANCEL_HOURS=0 disables auto-cancel", async () => {
-    h = setup({ envOverrides: { AUTO_CANCEL_HOURS: "0" } });
-    h.orders.set("2001", makeOrder("2001", { createdAt: new Date(Date.now() - 99 * 3600 * 1000).toISOString() }));
-    await h.runCron();
-    expect(h.orders.get("2001")!.cancelledAt).toBeNull();
-    expect(h.calls.some((c) => c.op === "StaleOrders")).toBe(false);
   });
 });

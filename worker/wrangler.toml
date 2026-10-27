@@ -2,7 +2,7 @@ name = "bkash-shopify"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
 
-# Every 10 min: retry failed Shopify syncs, recover payments whose callback was lost, auto-cancel stale orders
+# Every 10 min: retry Shopify updates that failed after a completed bKash payment
 [triggers]
 crons = ["*/10 * * * *"]
 
@@ -21,6 +21,5 @@ SHOPIFY_SHOP = "fab336-57.myshopify.com"
 SHOPIFY_CLIENT_ID = "74fab2cd8ddbee9dbb3bbe69117057dc"
 SHOPIFY_API_VERSION = "2026-07"
 BKASH_GATEWAY_NAME = "bKash"
-AUTO_CANCEL_HOURS = "24"
 # Sandbox. Switch to https://tokenized.pay.bka.sh/v1.2.0-beta for live.
 BKASH_BASE_URL = "https://tokenized.sandbox.bka.sh/v1.2.0-beta"
